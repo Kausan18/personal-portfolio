@@ -1,0 +1,14 @@
+{
+  "projects": [
+    {
+      "id": "dataset-quality-analyzer",
+      "title": "Dataset Quality Analyzer",
+      "subtitle": "EDA tool",
+      "description": "An AI-powered exploratory data analysis tool that automatically profiles datasets, detects anomalies, missing values, and generates visual insights. Built with a FastAPI backend and Streamlit frontend, backed by Supabase for storage and Groq for AI-generated summaries.",
+      "tags": ["Streamlit", "FastAPI", "Supabase", "GroqAPI"],
+      "liveUrl": "",
+      "githubUrl": "",
+      "featured": true
+    }
+  ]
+}

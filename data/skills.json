@@ -1,0 +1,28 @@
+{
+  "categories": [
+    {
+      "id": "languages",
+      "label": "Languages",
+      "icon": "code",
+      "skills": ["Python", "C/C++", "JavaScript"]
+    },
+    {
+      "id": "databases",
+      "label": "Databases",
+      "icon": "database",
+      "skills": ["PostgreSQL", "SQL"]
+    },
+    {
+      "id": "frameworks",
+      "label": "Frameworks",
+      "icon": "layers",
+      "skills": ["React", "Streamlit", "FastAPI", "Supabase", "LlamaIndex", "ChromaDB"]
+    },
+    {
+      "id": "libraries",
+      "label": "Libraries",
+      "icon": "book-open",
+      "skills": ["Matplotlib", "Pandas", "NumPy"]
+    }
+  ]
+}
