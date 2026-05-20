@@ -38,7 +38,20 @@ export default function Skills() {
   useEffect(() => {
     fetch("/api/skills")
       .then((r) => r.json())
-      .then((d) => setCategories(d.categories));
+      .then((d) => {
+        if (Array.isArray(d?.categories)) {
+          setCategories(d.categories);
+        } else if (d && typeof d === "object") {
+          setCategories(
+            Object.entries(d).map(([label, value]) => ({
+              id: label.toLowerCase().replace(/\s+/g, "-"),
+              label,
+              icon: "code",
+              skills: Array.isArray(value) ? value : [],
+            }))
+          );
+        }
+      });
   }, []);
 
   return (
