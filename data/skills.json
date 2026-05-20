@@ -1,28 +1,38 @@
 {
   "categories": [
     {
-      "id": "languages",
-      "label": "Languages",
+      "id": "frontend",
+      "label": "Frontend",
       "icon": "code",
-      "skills": ["Python", "C/C++", "JavaScript"]
+      "skills": [
+        "React",
+        "Next.js",
+        "TypeScript",
+        "Tailwind CSS",
+        "HTML"
+      ]
     },
     {
-      "id": "databases",
-      "label": "Databases",
+      "id": "backend",
+      "label": "Backend",
       "icon": "database",
-      "skills": ["PostgreSQL", "SQL"]
+      "skills": [
+        "Node.js",
+        "Express",
+        "Python",
+        "FastAPI"
+      ]
     },
     {
-      "id": "frameworks",
-      "label": "Frameworks",
+      "id": "tools",
+      "label": "Tools",
       "icon": "layers",
-      "skills": ["React", "Streamlit", "FastAPI", "Supabase", "LlamaIndex", "ChromaDB"]
-    },
-    {
-      "id": "libraries",
-      "label": "Libraries",
-      "icon": "book-open",
-      "skills": ["Matplotlib", "Pandas", "NumPy"]
+      "skills": [
+        "Git",
+        "Docker",
+        "Supabase",
+        "Vercel"
+      ]
     }
   ]
 }
