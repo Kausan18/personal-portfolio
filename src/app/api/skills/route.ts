@@ -25,3 +25,32 @@ export async function POST(req: Request) {
   saveSkills(data as { categories: SkillCategory[] });
   return NextResponse.json({ success: true });
 }
+
+export async function DELETE(req: Request) {
+  const body = await req.json();
+  const { password, action, category, skill } = body;
+
+  if (password !== process.env.ADMIN_PASSWORD) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const data = getSkills();
+
+  if (action === "deleteCategory") {
+    const updated = data.categories.filter((item) => item.label !== category);
+    saveSkills({ categories: updated });
+    return NextResponse.json({ success: true });
+  }
+
+  if (action === "deleteSkill") {
+    const updated = data.categories.map((item) =>
+      item.label === category
+        ? { ...item, skills: item.skills.filter((sk) => sk !== skill) }
+        : item
+    );
+    saveSkills({ categories: updated });
+    return NextResponse.json({ success: true });
+  }
+
+  return NextResponse.json({ error: "Unknown action" }, { status: 400 });
+}

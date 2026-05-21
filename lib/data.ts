@@ -40,6 +40,7 @@ export interface Project {
   liveUrl: string;
   githubUrl: string;
   featured: boolean;
+  images?: string[];
 }
 
 export function getProjects(): { projects: Project[] } {
@@ -48,6 +49,19 @@ export function getProjects(): { projects: Project[] } {
 
 export function saveProjects(data: { projects: Project[] }): void {
   writeJSON("projects.json", data);
+}
+
+// ── Hero ───────────────────────────────────────────────────
+export interface HeroData {
+  description: string;
+}
+
+export function getHero(): HeroData {
+  return readJSON("hero.json");
+}
+
+export function saveHero(data: HeroData): void {
+  writeJSON("hero.json", data);
 }
 
 // ── Contact ───────────────────────────────────────────────

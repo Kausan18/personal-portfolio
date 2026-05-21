@@ -1,4 +1,5 @@
 import { getProjects } from "@/lib/data";
+import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
@@ -41,6 +42,24 @@ export default async function ProjectPage({ params }: Props) {
         <p className="text-gray-500 text-sm mb-6">{project.subtitle}</p>
 
         <p className="text-gray-300 leading-relaxed mb-8">{project.description}</p>
+
+        {project.images && project.images.length > 0 && (
+          <div className="mb-8 space-y-4">
+            <div className="overflow-x-auto flex gap-4 pb-2">
+              {project.images.map((image) => (
+                <div key={image} className="min-w-70 rounded-3xl overflow-hidden border border-white/10 bg-[#090918]">
+                  <Image
+                    src={image}
+                    alt={`${project.title} image`}
+                    width={560}
+                    height={320}
+                    className="object-cover w-full h-56"
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="flex flex-wrap gap-4">
           {project.liveUrl && (

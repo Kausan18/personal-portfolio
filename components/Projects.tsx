@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import { motion } from "framer-motion";
 import Link from "next/link";
 
@@ -12,6 +13,7 @@ interface Project {
   liveUrl: string;
   githubUrl: string;
   featured: boolean;
+  images?: string[];
 }
 
 export default function Projects() {
@@ -53,28 +55,39 @@ export default function Projects() {
               <Link href={`/projects/${project.id}`}>
                 <div className="group bg-[#0d0d20] border border-white/8 rounded-2xl overflow-hidden hover:border-violet-500/40 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-violet-900/20 cursor-pointer h-full">
                   {/* Card image placeholder */}
-                  <div className="h-44 bg-[#0a0a1a] flex items-center justify-center border-b border-white/5">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="w-12 h-12 text-violet-800/60 group-hover:text-violet-600/80 transition-colors"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={1}
-                        d="M3 7a2 2 0 012-2h14a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"
+                  {project.images && project.images.length > 0 ? (
+                    <div className="relative h-44 overflow-hidden border-b border-white/5">
+                      <Image
+                        src={project.images[0]}
+                        alt={project.title}
+                        fill
+                        className="object-cover"
                       />
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={1}
-                        d="M16 3v4M8 3v4"
-                      />
-                    </svg>
-                  </div>
+                    </div>
+                  ) : (
+                    <div className="h-44 bg-[#0a0a1a] flex items-center justify-center border-b border-white/5">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="w-12 h-12 text-violet-800/60 group-hover:text-violet-600/80 transition-colors"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={1}
+                          d="M3 7a2 2 0 012-2h14a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"
+                        />
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={1}
+                          d="M16 3v4M8 3v4"
+                        />
+                      </svg>
+                    </div>
+                  )}
 
                   {/* Card body */}
                   <div className="p-5">
