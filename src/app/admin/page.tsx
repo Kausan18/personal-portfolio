@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { ChangeEvent, useState, useEffect, useCallback } from "react";
+import Image from "next/image";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -22,6 +23,7 @@ interface Project {
   liveUrl?: string;
   githubUrl?: string;
   featured?: boolean;
+  images?: string[];
 }
 
 interface ContactData {
@@ -161,6 +163,21 @@ function SkillsTab({
     onStatus(`Removed "${skill}"`, "success");
   }
 
+  async function handleDeleteCategory(categoryId: string, categoryLabel: string) {
+    if (!confirm(`Delete category "${categoryLabel}" and all its skills?`)) return;
+
+    const res = await fetch("/api/skills", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ password, action: "deleteCategory", category: categoryLabel }),
+    });
+    const result = await res.json();
+    if (result.error) return onStatus(result.error, "error");
+
+    setSkills((prev) => prev.filter((category) => category.id !== categoryId));
+    onStatus(`Deleted category "${categoryLabel}"`, "success");
+  }
+
   async function handleAddCategory() {
     const label = newCategory.trim();
     if (!label) return;
@@ -202,7 +219,15 @@ function SkillsTab({
           key={category.id}
           className="bg-[#0d0d20] border border-white/8 rounded-xl p-5 space-y-4"
         >
-          <SectionTitle>{category.label}</SectionTitle>
+          <div className="flex items-start justify-between gap-3">
+            <SectionTitle>{category.label}</SectionTitle>
+            <button
+              onClick={() => handleDeleteCategory(category.id, category.label)}
+              className="px-3 py-1.5 text-xs font-mono bg-red-500/10 border border-red-500/20 text-red-300 hover:bg-red-500/20 rounded-lg transition-colors"
+            >
+              Delete
+            </button>
+          </div>
 
           {/* Skill chips */}
           <div className="flex flex-wrap gap-2">
@@ -284,13 +309,25 @@ function ProjectsTab({
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [tagsInput, setTagsInput] = useState("");
-  const [form, setForm] = useState({
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editTagsInput, setEditTagsInput] = useState("");
+  const [form, setForm] = useState<{
+    title: string;
+    subtitle: string;
+    description: string;
+    liveUrl: string;
+    githubUrl: string;
+    images: string[];
+  }>({
     title: "",
     subtitle: "",
     description: "",
     liveUrl: "",
     githubUrl: "",
+    images: [],
   });
+  const [uploadingImages, setUploadingImages] = useState(false);
+  const [imageUploadError, setImageUploadError] = useState<string | null>(null);
 
   const fetchProjects = useCallback(async () => {
     try {
@@ -308,7 +345,8 @@ function ProjectsTab({
     async function load() {
       await fetchProjects();
     }
-    load();
+
+    void load();
   }, [fetchProjects]);
 
   async function post(body: object) {
@@ -318,6 +356,115 @@ function ProjectsTab({
       body: JSON.stringify({ password, ...body }),
     });
     return res.json();
+  }
+
+  async function put(body: object) {
+    const res = await fetch("/api/projects", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ password, ...body }),
+    });
+    return res.json();
+  }
+
+  function resetForm() {
+    setForm({ title: "", subtitle: "", description: "", liveUrl: "", githubUrl: "", images: [] });
+    setTagsInput("");
+    setEditTagsInput("");
+    setImageUploadError(null);
+  }
+
+  function openEdit(project: Project) {
+    setEditingId(project.id);
+    setForm({
+      title: project.title,
+      subtitle: project.subtitle,
+      description: project.description,
+      liveUrl: project.liveUrl || "",
+      githubUrl: project.githubUrl || "",
+      images: project.images ? [...project.images] : [],
+    });
+    setEditTagsInput(project.tags.join(", "));
+    setShowForm(false);
+    setImageUploadError(null);
+  }
+
+  function cancelEdit() {
+    setEditingId(null);
+    resetForm();
+  }
+
+  async function handleSaveEdit() {
+    if (!editingId) return;
+    const { title, subtitle, description, liveUrl, githubUrl, images } = form;
+    if (!title.trim() || !subtitle.trim() || !description.trim()) {
+      return onStatus("Title, subtitle, and description are required", "error");
+    }
+
+    const tags = editTagsInput
+      .split(",")
+      .map((tag) => tag.trim())
+      .filter(Boolean);
+
+    const result = await put({
+      id: editingId,
+      title,
+      subtitle,
+      description,
+      tags,
+      liveUrl,
+      githubUrl,
+      images,
+    });
+    if (result.error) return onStatus(result.error, "error");
+
+    setProjects((prev) =>
+      prev.map((project) =>
+        project.id === editingId
+          ? { ...project, title, subtitle, description, tags, liveUrl, githubUrl, images }
+          : project
+      )
+    );
+    setEditingId(null);
+    resetForm();
+    onStatus(`Updated project "${title}"`, "success");
+  }
+
+  async function handleUploadImages(files: FileList | null) {
+    if (!editingId || !files || files.length === 0) return;
+    setUploadingImages(true);
+    setImageUploadError(null);
+
+    const uploadedUrls: string[] = [];
+
+    for (const file of Array.from(files)) {
+      const formData = new FormData();
+      formData.append("password", password);
+      formData.append("projectId", editingId);
+      formData.append("file", file);
+
+      const res = await fetch("/api/projects/images", {
+        method: "POST",
+        body: formData,
+      });
+      const data = await res.json();
+      if (data.error) {
+        setImageUploadError(data.error || "Image upload failed");
+        setUploadingImages(false);
+        return;
+      }
+      uploadedUrls.push(data.url);
+    }
+
+    setForm((prev) => ({ ...prev, images: [...prev.images, ...uploadedUrls] }));
+    setUploadingImages(false);
+  }
+
+  function handleRemoveImage(imageUrl: string) {
+    setForm((prev) => ({
+      ...prev,
+      images: prev.images.filter((url) => url !== imageUrl),
+    }));
   }
 
   async function handleAddProject() {
@@ -347,14 +494,14 @@ function ProjectsTab({
       liveUrl,
       githubUrl,
       featured: false,
+      images: [],
     };
     const updated = [...projects, newProject];
     const result = await post({ projects: updated });
     if (result.error) return onStatus(result.error, "error");
 
     setProjects(updated);
-    setForm({ title: "", subtitle: "", description: "", liveUrl: "", githubUrl: "" });
-    setTagsInput("");
+    resetForm();
     setShowForm(false);
     onStatus(`Added project "${title}"`, "success");
   }
@@ -366,6 +513,9 @@ function ProjectsTab({
     if (result.error) return onStatus(result.error, "error");
 
     setProjects(updated);
+    if (editingId === id) {
+      cancelEdit();
+    }
     onStatus(`Deleted "${title}"`, "success");
   }
 
@@ -385,7 +535,7 @@ function ProjectsTab({
       {projects.map((p) => (
         <div
           key={p.id}
-          className="bg-[#0d0d20] border border-white/8 rounded-xl p-5 flex items-start justify-between gap-4"
+          className="bg-[#0d0d20] border border-white/8 rounded-xl p-5 flex flex-col md:flex-row items-start justify-between gap-4"
         >
           <div className="space-y-1 flex-1 min-w-0">
             <p className="text-white font-semibold truncate">{p.title}</p>
@@ -401,26 +551,26 @@ function ProjectsTab({
               ))}
             </div>
           </div>
-          <button
-            onClick={() => handleDelete(p.id, p.title)}
-            className="shrink-0 px-3 py-1.5 text-xs font-mono bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 rounded-lg transition-colors"
-          >
-            Delete
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => openEdit(p)}
+              className="shrink-0 px-3 py-1.5 text-xs font-mono bg-violet-500/10 border border-violet-500/20 text-violet-300 hover:bg-violet-500/20 rounded-lg transition-colors"
+            >
+              Edit
+            </button>
+            <button
+              onClick={() => handleDelete(p.id, p.title)}
+              className="shrink-0 px-3 py-1.5 text-xs font-mono bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 rounded-lg transition-colors"
+            >
+              Delete
+            </button>
+          </div>
         </div>
       ))}
 
-      {/* Add project form toggle */}
-      {!showForm ? (
-        <button
-          onClick={() => setShowForm(true)}
-          className="w-full py-3 border border-dashed border-white/10 rounded-xl text-gray-500 hover:text-violet-400 hover:border-violet-500/30 text-sm font-mono transition-colors"
-        >
-          + Add New Project
-        </button>
-      ) : (
+      {editingId && (
         <div className="bg-[#0d0d20] border border-violet-500/20 rounded-xl p-5 space-y-4">
-          <SectionTitle>New Project</SectionTitle>
+          <SectionTitle>Edit Project</SectionTitle>
 
           {[
             { key: "title", placeholder: "Title *" },
@@ -453,20 +603,60 @@ function ProjectsTab({
           <input
             type="text"
             placeholder="Tags (comma-separated)"
-            value={tagsInput}
-            onChange={(e) => setTagsInput(e.target.value)}
+            value={editTagsInput}
+            onChange={(e) => setEditTagsInput(e.target.value)}
             className="w-full bg-[#080814] border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-600 font-mono focus:outline-none focus:border-violet-500/50"
           />
 
-          <div className="flex gap-3 pt-1">
+          <div className="space-y-3">
+            <label className="text-xs font-mono uppercase tracking-widest text-gray-400">
+              Project Images
+            </label>
+            <input
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={(e) => handleUploadImages(e.target.files)}
+              className="w-full bg-[#080814] border border-white/10 rounded-lg px-3 py-2 text-sm text-white file:bg-violet-600 file:text-white file:px-3 file:py-2 file:rounded-lg"
+            />
+            {imageUploadError && (
+              <p className="text-red-400 text-sm">{imageUploadError}</p>
+            )}
+            {uploadingImages && (
+              <p className="text-gray-400 text-sm">Uploading images…</p>
+            )}
+            {form.images.length > 0 && (
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                {form.images.map((image) => (
+                  <div key={image} className="relative rounded-2xl overflow-hidden border border-white/10 bg-[#080814] h-28">
+                    <Image
+                      src={image}
+                      alt="Project image"
+                      fill
+                      className="object-cover"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveImage(image)}
+                      className="absolute top-2 right-2 rounded-full bg-black/60 text-white w-8 h-8 flex items-center justify-center text-xs"
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="flex gap-3 pt-1 flex-wrap">
             <button
-              onClick={handleAddProject}
+              onClick={handleSaveEdit}
               className="flex-1 py-2 bg-violet-600 hover:bg-violet-500 text-white text-sm font-mono rounded-lg transition-colors"
             >
-              Save Project
+              Save Changes
             </button>
             <button
-              onClick={() => setShowForm(false)}
+              onClick={cancelEdit}
               className="px-4 py-2 bg-white/5 hover:bg-white/10 text-gray-400 text-sm font-mono rounded-lg transition-colors"
             >
               Cancel
@@ -474,6 +664,71 @@ function ProjectsTab({
           </div>
         </div>
       )}
+
+      {!editingId &&
+        (!showForm ? (
+          <button
+            onClick={() => setShowForm(true)}
+            className="w-full py-3 border border-dashed border-white/10 rounded-xl text-gray-500 hover:text-violet-400 hover:border-violet-500/30 text-sm font-mono transition-colors"
+          >
+            + Add New Project
+          </button>
+        ) : (
+          <div className="bg-[#0d0d20] border border-violet-500/20 rounded-xl p-5 space-y-4">
+            <SectionTitle>New Project</SectionTitle>
+
+            {[
+              { key: "title", placeholder: "Title *" },
+              { key: "subtitle", placeholder: "Subtitle *" },
+              { key: "liveUrl", placeholder: "Live URL (optional)" },
+              { key: "githubUrl", placeholder: "GitHub URL (optional)" },
+            ].map(({ key, placeholder }) => (
+              <input
+                key={key}
+                type="text"
+                placeholder={placeholder}
+                value={form[key as keyof typeof form]}
+                onChange={(e) =>
+                  setForm((p) => ({ ...p, [key]: e.target.value }))
+                }
+                className="w-full bg-[#080814] border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-600 font-mono focus:outline-none focus:border-violet-500/50"
+              />
+            ))}
+
+            <textarea
+              placeholder="Description *"
+              rows={3}
+              value={form.description}
+              onChange={(e) =>
+                setForm((p) => ({ ...p, description: e.target.value }))
+              }
+              className="w-full bg-[#080814] border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-600 font-mono focus:outline-none focus:border-violet-500/50 resize-none"
+            />
+
+            <input
+              type="text"
+              placeholder="Tags (comma-separated)"
+              value={tagsInput}
+              onChange={(e) => setTagsInput(e.target.value)}
+              className="w-full bg-[#080814] border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-600 font-mono focus:outline-none focus:border-violet-500/50"
+            />
+
+            <div className="flex gap-3 pt-1">
+              <button
+                onClick={handleAddProject}
+                className="flex-1 py-2 bg-violet-600 hover:bg-violet-500 text-white text-sm font-mono rounded-lg transition-colors"
+              >
+                Save Project
+              </button>
+              <button
+                onClick={() => setShowForm(false)}
+                className="px-4 py-2 bg-white/5 hover:bg-white/10 text-gray-400 text-sm font-mono rounded-lg transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        ))}
     </div>
   );
 }
@@ -493,16 +748,102 @@ function ContactTab({
     phone: "",
     email: "",
   });
+  const [heroDescription, setHeroDescription] = useState("");
+  const [resumeExists, setResumeExists] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [savingHero, setSavingHero] = useState(false);
+  const [resumeUploading, setResumeUploading] = useState(false);
+  const [resumeDeleting, setResumeDeleting] = useState(false);
 
   useEffect(() => {
-    fetch("/api/contact")
-      .then((r) => r.json())
-      .then((d) => setContact(d.contact ?? d))
-      .catch(() => onStatus("Failed to load contact info", "error"))
-      .finally(() => setLoading(false));
+    async function load() {
+      try {
+        const [contactRes, heroRes, resumeRes] = await Promise.all([
+          fetch("/api/contact"),
+          fetch("/api/hero"),
+          fetch("/api/resume"),
+        ]);
+
+        const contactData = await contactRes.json();
+        const heroData = await heroRes.json();
+        const resumeData = await resumeRes.json();
+
+        setContact(contactData.contact ?? contactData);
+        setHeroDescription(heroData?.description ?? "");
+        setResumeExists(Boolean(resumeData?.exists));
+      } catch {
+        onStatus("Failed to load contact info", "error");
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    load();
   }, [onStatus]);
+
+  async function handleSaveHero() {
+    setSavingHero(true);
+    try {
+      const res = await fetch("/api/hero", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password, description: heroDescription }),
+      });
+      const result = await res.json();
+      if (result.error) return onStatus(result.error, "error");
+      onStatus("Hero description saved", "success");
+    } catch {
+      onStatus("Failed to save hero description", "error");
+    } finally {
+      setSavingHero(false);
+    }
+  }
+
+  async function handleUploadResume(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    setResumeUploading(true);
+
+    const formData = new FormData();
+    formData.append("password", password);
+    formData.append("file", file);
+
+    try {
+      const res = await fetch("/api/resume", {
+        method: "POST",
+        body: formData,
+      });
+      const result = await res.json();
+      if (result.error) return onStatus(result.error, "error");
+      setResumeExists(true);
+      onStatus("Resume uploaded", "success");
+    } catch {
+      onStatus("Failed to upload resume", "error");
+    } finally {
+      setResumeUploading(false);
+    }
+  }
+
+  async function handleDeleteResume() {
+    if (!confirm("Remove the current resume?")) return;
+    setResumeDeleting(true);
+    try {
+      const res = await fetch("/api/resume", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password }),
+      });
+      const result = await res.json();
+      if (result.error) return onStatus(result.error, "error");
+      setResumeExists(false);
+      onStatus("Resume removed", "success");
+    } catch {
+      onStatus("Failed to remove resume", "error");
+    } finally {
+      setResumeDeleting(false);
+    }
+  }
 
   async function handleSave() {
     setSaving(true);
@@ -537,33 +878,90 @@ function ContactTab({
     );
 
   return (
-    <div className="bg-[#0d0d20] border border-white/8 rounded-xl p-5 space-y-5">
-      <SectionTitle>Contact Details</SectionTitle>
+    <div className="space-y-6">
+      <div className="bg-[#0d0d20] border border-white/8 rounded-xl p-5 space-y-5">
+        <SectionTitle>Contact Details</SectionTitle>
 
-      {fields.map(({ key, label, placeholder }) => (
-        <div key={key} className="space-y-1.5">
-          <label className="text-xs font-mono text-gray-500 uppercase tracking-wider">
-            {label}
-          </label>
-          <input
-            type="text"
-            placeholder={placeholder}
-            value={contact[key]}
-            onChange={(e) =>
-              setContact((p) => ({ ...p, [key]: e.target.value }))
-            }
-            className="w-full bg-[#080814] border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white placeholder-gray-600 font-mono focus:outline-none focus:border-violet-500/50"
-          />
+        {fields.map(({ key, label, placeholder }) => (
+          <div key={key} className="space-y-1.5">
+            <label className="text-xs font-mono text-gray-500 uppercase tracking-wider">
+              {label}
+            </label>
+            <input
+              type="text"
+              placeholder={placeholder}
+              value={contact[key]}
+              onChange={(e) =>
+                setContact((p) => ({ ...p, [key]: e.target.value }))
+              }
+              className="w-full bg-[#080814] border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white placeholder-gray-600 font-mono focus:outline-none focus:border-violet-500/50"
+            />
+          </div>
+        ))}
+
+        <button
+          onClick={handleSave}
+          disabled={saving}
+          className="w-full py-2.5 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white text-sm font-mono rounded-lg transition-colors"
+        >
+          {saving ? "Saving…" : "Save Changes"}
+        </button>
+      </div>
+
+      <div className="bg-[#0d0d20] border border-white/8 rounded-xl p-5 space-y-5">
+        <SectionTitle>Hero Description</SectionTitle>
+
+        <textarea
+          rows={4}
+          value={heroDescription}
+          onChange={(e) => setHeroDescription(e.target.value)}
+          className="w-full bg-[#080814] border border-white/10 rounded-lg px-3 py-3 text-sm text-white placeholder-gray-600 font-mono focus:outline-none focus:border-violet-500/50 resize-none"
+          placeholder="Enter the hero description shown on the home page"
+        />
+
+        <button
+          onClick={handleSaveHero}
+          disabled={savingHero}
+          className="w-full py-2.5 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white text-sm font-mono rounded-lg transition-colors"
+        >
+          {savingHero ? "Saving…" : "Save Hero Description"}
+        </button>
+      </div>
+
+      <div className="bg-[#0d0d20] border border-white/8 rounded-xl p-5 space-y-4">
+        <SectionTitle>Resume</SectionTitle>
+
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <p className="text-sm text-gray-400">
+            Current resume: {resumeExists ? "resume.pdf ✅" : "No resume uploaded"}
+          </p>
+
+          <div className="flex flex-wrap gap-2">
+            <label className="inline-flex items-center px-4 py-2 bg-violet-600 hover:bg-violet-500 text-white rounded-lg text-sm font-mono cursor-pointer transition-colors">
+              <span>{resumeExists ? "Replace" : "Upload"}</span>
+              <input
+                type="file"
+                accept=".pdf"
+                onChange={handleUploadResume}
+                className="sr-only"
+              />
+            </label>
+            {resumeExists && (
+              <button
+                onClick={handleDeleteResume}
+                disabled={resumeDeleting}
+                className="px-4 py-2 bg-red-500 hover:bg-red-400 text-white rounded-lg text-sm font-mono transition-colors disabled:opacity-50"
+              >
+                {resumeDeleting ? "Removing…" : "Remove"}
+              </button>
+            )}
+          </div>
         </div>
-      ))}
 
-      <button
-        onClick={handleSave}
-        disabled={saving}
-        className="w-full py-2.5 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white text-sm font-mono rounded-lg transition-colors"
-      >
-        {saving ? "Saving…" : "Save Changes"}
-      </button>
+        {resumeUploading && (
+          <p className="text-gray-400 text-sm">Uploading resume…</p>
+        )}
+      </div>
     </div>
   );
 }

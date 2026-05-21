@@ -5,10 +5,35 @@
       "title": "Dataset Quality Analyzer",
       "subtitle": "EDA tool",
       "description": "An AI-powered exploratory data analysis tool that automatically profiles datasets, detects anomalies, missing values, and generates visual insights. Built with a FastAPI backend and Streamlit frontend, backed by Supabase for storage and Groq for AI-generated summaries.",
-      "tags": ["Streamlit", "FastAPI", "Supabase", "GroqAPI"],
+      "tags": [
+        "Streamlit",
+        "FastAPI",
+        "Supabase",
+        "GroqAPI"
+      ],
       "liveUrl": "",
       "githubUrl": "",
-      "featured": true
+      "featured": true,
+      "images": []
+    },
+    {
+      "id": "sentinel-rag-based-asm-system",
+      "title": "Sentinel-RAG based ASM System",
+      "subtitle": "ASM system",
+      "description": "A RAG based ASM system that monitors all your digital assets",
+      "tags": [
+        "Streamlit",
+        "FastAPI",
+        "Supabase",
+        "Ollama Phi3",
+        "GroqAPI",
+        "Llamaindex",
+        "ChromaDB"
+      ],
+      "liveUrl": "",
+      "githubUrl": "",
+      "featured": false,
+      "images": []
     }
   ]
 }

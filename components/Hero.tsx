@@ -1,8 +1,39 @@
 "use client";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import Image from "next/image";
+import { Download } from "lucide-react";
 
 export default function Hero() {
+  const [description, setDescription] = useState("Loading...");
+  const [resumeExists, setResumeExists] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/hero")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data?.description) {
+          setDescription(data.description);
+        }
+      })
+      .catch(() => {
+        setDescription(
+          "Motivated and detail-oriented Computer Science student with a strong interest in Artificial Intelligence and Machine Learning, and a keen aptitude for building impactful, data-driven solutions."
+        );
+      });
+
+    fetch("/api/resume")
+      .then((res) => res.json())
+      .then((data) => {
+        if (typeof data?.exists === "boolean") {
+          setResumeExists(data.exists);
+        }
+      })
+      .catch(() => {
+        setResumeExists(false);
+      });
+  }, []);
+
   return (
     <section className="min-h-screen flex items-center px-6 pt-20 max-w-6xl mx-auto">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center w-full">
@@ -21,9 +52,7 @@ export default function Hero() {
             <span className="text-white font-mono">Shandilya</span>
           </h1>
           <p className="text-gray-400 text-lg leading-relaxed mb-8 max-w-lg">
-            Motivated and detail-oriented Computer Science student with a strong
-            interest in Artificial Intelligence and Machine Learning, and a keen
-            aptitude for building impactful, data-driven solutions.
+            {description}
           </p>
           <div className="flex flex-wrap gap-3">
             <button
@@ -46,6 +75,16 @@ export default function Hero() {
             >
               Contact Me
             </button>
+            {resumeExists && (
+              <a
+                href="/resume.pdf"
+                download
+                className="flex items-center gap-2 px-6 py-3 border border-white/20 text-white rounded-xl font-semibold transition-all duration-200 hover:bg-white/5"
+              >
+                <Download size={16} />
+                Resume
+              </a>
+            )}
           </div>
         </motion.div>
 

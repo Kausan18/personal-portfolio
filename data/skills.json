@@ -28,10 +28,27 @@
       "label": "Tools",
       "icon": "layers",
       "skills": [
-        "Git",
         "Docker",
         "Supabase",
         "Vercel"
+      ]
+    },
+    {
+      "id": "databases",
+      "label": "Databases",
+      "icon": "code",
+      "skills": [
+        "PostgreSQL",
+        "SQL"
+      ]
+    },
+    {
+      "id": "version-control",
+      "label": "Version Control",
+      "icon": "code",
+      "skills": [
+        "Git",
+        "Github"
       ]
     }
   ]
