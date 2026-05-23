@@ -10,8 +10,8 @@ interface Project {
   subtitle: string;
   description: string;
   tags: string[];
-  liveUrl: string;
-  githubUrl: string;
+  live_url: string;
+  github_url: string;
   featured: boolean;
   images?: string[];
 }
@@ -54,7 +54,7 @@ export default function Projects() {
             >
               <Link href={`/projects/${project.id}`}>
                 <div className="group bg-[#0d0d20] border border-white/8 rounded-2xl overflow-hidden hover:border-violet-500/40 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-violet-900/20 cursor-pointer h-full">
-                  {/* Card image placeholder */}
+                  {/* Card image */}
                   {project.images && project.images.length > 0 ? (
                     <div className="relative h-44 overflow-hidden border-b border-white/5">
                       <Image

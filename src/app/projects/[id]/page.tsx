@@ -1,4 +1,4 @@
-import { getProjects } from "@/lib/data";
+import { getProjects, getProjectById } from "@/lib/data";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -7,10 +7,20 @@ interface Props {
   params: Promise<{ id: string }>;
 }
 
+export async function generateStaticParams() {
+  try {
+    const { projects } = await getProjects();
+    return projects.map((p) => ({ id: p.id }));
+  } catch {
+    return [];
+  }
+}
+
+export const dynamic = "force-dynamic";
+
 export default async function ProjectPage({ params }: Props) {
   const { id } = await params;
-  const { projects } = getProjects();
-  const project = projects.find((p) => p.id === id);
+  const project = await getProjectById(id);
 
   if (!project) return notFound();
 
@@ -62,9 +72,9 @@ export default async function ProjectPage({ params }: Props) {
         )}
 
         <div className="flex flex-wrap gap-4">
-          {project.liveUrl && (
+          {project.live_url && (
             <a
-              href={project.liveUrl}
+              href={project.live_url}
               target="_blank"
               rel="noopener noreferrer"
               className="px-5 py-2.5 bg-violet-600 hover:bg-violet-500 text-white rounded-xl font-semibold text-sm transition-all hover:scale-105 flex items-center gap-2"
@@ -75,9 +85,9 @@ export default async function ProjectPage({ params }: Props) {
               Live Demo
             </a>
           )}
-          {project.githubUrl && (
+          {project.github_url && (
             <a
-              href={project.githubUrl}
+              href={project.github_url}
               target="_blank"
               rel="noopener noreferrer"
               className="px-5 py-2.5 border border-white/20 hover:border-violet-500 text-white rounded-xl font-semibold text-sm transition-all hover:scale-105 flex items-center gap-2"
@@ -88,7 +98,7 @@ export default async function ProjectPage({ params }: Props) {
               GitHub Repo
             </a>
           )}
-          {!project.liveUrl && !project.githubUrl && (
+          {!project.live_url && !project.github_url && (
             <p className="text-gray-600 font-mono text-sm">No links added yet.</p>
           )}
         </div>

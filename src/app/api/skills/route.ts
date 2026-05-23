@@ -1,56 +1,68 @@
 import { NextResponse } from "next/server";
-import { getSkills, saveSkills, type SkillCategory } from "@/lib/data";
+import {
+  getSkills,
+  saveSkills,
+  addSkillCategory,
+  deleteSkillCategory,
+} from "@/lib/data";
 
 export async function GET() {
-  const data = getSkills();
-  return NextResponse.json(data);
+  try {
+    const data = await getSkills();
+    return NextResponse.json(data);
+  } catch {
+    return NextResponse.json({ error: "Failed to fetch skills" }, { status: 500 });
+  }
 }
 
 export async function POST(req: Request) {
-  const body = await req.json();
-  const { password, action, ...data } = body;
+  try {
+    const body = await req.json();
+    const { password, action, ...data } = body;
 
-  if (password !== process.env.ADMIN_PASSWORD) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (password !== process.env.ADMIN_PASSWORD) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    if (action === "ping") {
+      return NextResponse.json({ success: true });
+    }
+
+    // Add a new category
+    if (action === "addCategory") {
+      await addSkillCategory(data);
+      return NextResponse.json({ success: true });
+    }
+
+    // Update skills array for an existing category
+    // body shape: { password, id, skills: string[] }
+    if (data.id && Array.isArray(data.skills)) {
+      await saveSkills(data.id, data.skills);
+      return NextResponse.json({ success: true });
+    }
+
+    return NextResponse.json({ error: "Unknown action or invalid payload" }, { status: 400 });
+  } catch {
+    return NextResponse.json({ error: "Failed to update skills" }, { status: 500 });
   }
-
-  if (action === "ping") {
-    return NextResponse.json({ success: true });
-  }
-
-  if (!data || typeof data !== "object" || Array.isArray(data)) {
-    return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
-  }
-
-  saveSkills(data as { categories: SkillCategory[] });
-  return NextResponse.json({ success: true });
 }
 
 export async function DELETE(req: Request) {
-  const body = await req.json();
-  const { password, action, category, skill } = body;
+  try {
+    const body = await req.json();
+    const { password, action, categoryId } = body;
 
-  if (password !== process.env.ADMIN_PASSWORD) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (password !== process.env.ADMIN_PASSWORD) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    if (action === "deleteCategory") {
+      await deleteSkillCategory(categoryId);
+      return NextResponse.json({ success: true });
+    }
+
+    return NextResponse.json({ error: "Unknown action" }, { status: 400 });
+  } catch {
+    return NextResponse.json({ error: "Failed to delete skill category" }, { status: 500 });
   }
-
-  const data = getSkills();
-
-  if (action === "deleteCategory") {
-    const updated = data.categories.filter((item) => item.label !== category);
-    saveSkills({ categories: updated });
-    return NextResponse.json({ success: true });
-  }
-
-  if (action === "deleteSkill") {
-    const updated = data.categories.map((item) =>
-      item.label === category
-        ? { ...item, skills: item.skills.filter((sk) => sk !== skill) }
-        : item
-    );
-    saveSkills({ categories: updated });
-    return NextResponse.json({ success: true });
-  }
-
-  return NextResponse.json({ error: "Unknown action" }, { status: 400 });
 }

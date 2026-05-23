@@ -8,7 +8,7 @@ export default function Hero() {
   const [description, setDescription] = useState("Loading...");
   const [resumeExists, setResumeExists] = useState(false);
 
-  useEffect(() => {
+  const fetchData = () => {
     fetch("/api/hero")
       .then((res) => res.json())
       .then((data) => {
@@ -32,6 +32,19 @@ export default function Hero() {
       .catch(() => {
         setResumeExists(false);
       });
+  };
+
+  useEffect(() => {
+    fetchData();
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        fetchData();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, []);
 
   return (
