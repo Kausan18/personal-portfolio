@@ -35,7 +35,7 @@ const ICONS: Record<string, React.ReactElement> = {
 export default function Skills() {
   const [categories, setCategories] = useState<SkillCategory[]>([]);
 
-  useEffect(() => {
+  const fetchData = () => {
     fetch("/api/skills")
       .then((r) => r.json())
       .then((d) => {
@@ -52,6 +52,19 @@ export default function Skills() {
           );
         }
       });
+  };
+
+  useEffect(() => {
+    fetchData();
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        fetchData();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, []);
 
   return (

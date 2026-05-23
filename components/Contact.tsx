@@ -55,10 +55,23 @@ const contactFields = [
 export default function Contact() {
   const [contact, setContact] = useState<ContactInfo | null>(null);
 
-  useEffect(() => {
+  const fetchData = () => {
     fetch("/api/contact")
       .then((r) => r.json())
-      .then((d) => setContact(d.contact));
+      .then((d) => setContact(d.contact ?? d));
+  };
+
+  useEffect(() => {
+    fetchData();
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        fetchData();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, []);
 
   return (
